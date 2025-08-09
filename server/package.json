@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx --watch --env-file .env src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "type-check": "tsc --noEmit",
     "lint": "eslint",
     "lint:fix": "eslint . --fix"
@@ -40,6 +40,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/ms": "^2.1.0",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"
   }
