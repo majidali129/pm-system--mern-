@@ -3,7 +3,7 @@ import { CheckCircle2, Clock, Pause, Play, Target } from "lucide-react";
 export const statusIcons = {
   planning: Clock,
   active: Play,
-  "on-hold": Pause,
+  on_hold: Pause,
   completed: CheckCircle2,
   cancelled: Target,
 };
@@ -28,7 +28,7 @@ export const taskStatusColors: Record<TaskStatus, string> = {
 export const projectStatusColor: Record<ProjectStatus, string> = {
   planning: "bg-purple-100 text-purple-800 border-purple-200",
   active: "bg-blue-100 text-blue-800 border-blue-200",
-  "on-hold": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  on_hold: "bg-yellow-100 text-yellow-800 border-yellow-200",
   completed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-red-100 text-red-800 border-red-200",
 };
@@ -62,7 +62,7 @@ export const emptyProjectMsg = {
     description:
       "Start by creating your first project to organize work and collaborate with your team.",
   },
-  ["project-manager"]: {
+  ["project_manager"]: {
     title: "You haven't created any projects yet.",
     description:
       "Start by creating your first project to organize work and collaborate with your team.",
@@ -79,7 +79,7 @@ export const emptyTaskMsg = {
     description:
       "Create tasks under your projects to manage and track progress effectively.",
   },
-  ["project-manager"]: {
+  ["project_manager"]: {
     title: "No tasks found.",
     description:
       "Start by creating tasks to plan work and assign responsibilities to your team.",
@@ -96,7 +96,7 @@ export const emptyActiveProjectMsg = {
     description:
       "Create a new project or activate an existing one to start tracking progress and assigning tasks.",
   },
-  ["project-manager"]: {
+  ["project_manager"]: {
     title: "No active projects yet.",
     description:
       "Start managing work by creating or joining an active project.",

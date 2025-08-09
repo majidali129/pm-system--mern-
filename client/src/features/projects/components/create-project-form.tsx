@@ -9,42 +9,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppDispatch } from "@/store/hooks";
 import type { Project } from "@/types";
 import { Plus, Target, X } from "lucide-react";
 import {
-  useId,
   useState,
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { addProject } from "../project-slice";
-import { useUser } from "@/features/auth/hooks/use-user";
+import type { NewProjectPayload } from "@/api/project-service";
+import { useCreateProject } from "../hooks/use-create-project";
 
 const initialState: Pick<
   Project,
-  | "name"
-  | "description"
-  | "budget"
-  | "spent"
-  | "createdBy"
-  | "startDate"
-  | "endDate"
-  | "team"
-  | "tags"
+  "name" | "description" | "budget" | "spent" | "startDate" | "endDate" | "tags"
 > = {
   name: "",
   description: "",
   budget: 0,
   spent: 0,
-  createdBy: "",
   startDate: new Date().toISOString(),
   endDate: new Date().toISOString(),
-  team: {
-    name: "",
-    members: [],
-  },
   tags: [],
 };
 
@@ -53,13 +38,10 @@ type CreateProjectFormProps = {
 };
 
 export const CreateProjectForm = ({ onClose }: CreateProjectFormProps) => {
-  const id = useId();
-  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState(initialState);
-  const [loading, setLoading] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const { user } = useUser();
+  const { createProject, creatingProject } = useCreateProject();
 
   const handleOnChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -92,22 +74,17 @@ export const CreateProjectForm = ({ onClose }: CreateProjectFormProps) => {
   };
 
   const handleSubmit = (e: FormEvent) => {
-    setLoading(true);
     e.preventDefault();
-    const newProject: Project = {
-      id: `project-${Math.floor(Math.random() * 2919)}-${id}`,
+    const newProject: NewProjectPayload = {
       ...formData,
       tags: selectedTags,
-      status: "planning",
-      progress: 0,
-      createdBy: user?.user_metadata.userName,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
-
-    dispatch(addProject(newProject));
-
-    onClose?.();
+    createProject(newProject, {
+      onSettled: () => {
+        setFormData(initialState);
+        onClose?.();
+      },
+    });
   };
 
   return (
@@ -137,21 +114,6 @@ export const CreateProjectForm = ({ onClose }: CreateProjectFormProps) => {
             value={formData.description}
             onChange={handleOnChange}
             placeholder="Describe the project objectives, scope, and key deliverables..."
-          />
-          <FormItem
-            name="team"
-            label="Allocate Team (Later you can add members to this)"
-            value={formData.team.name}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                team: {
-                  ...prev.team,
-                  name: e.target.value,
-                },
-              }))
-            }
-            placeholder="Assign the best team..."
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -254,7 +216,7 @@ export const CreateProjectForm = ({ onClose }: CreateProjectFormProps) => {
               Cancel
             </Button>
             <Button type="submit">
-              {loading ? "Wait..." : "Create Project"}
+              {creatingProject ? "Wait..." : "Create Project"}
             </Button>
           </div>
         </form>

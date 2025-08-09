@@ -27,8 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { users } from "@/data/users";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { projectStatusColor } from "@/utils/constants";
 import { statusIcons } from "@/utils/constants";
 import { formatCurrency } from "@/utils/helpers";
@@ -47,16 +45,10 @@ import {
   UserPlus,
   ClipboardList,
   SearchX,
+  Loader,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import {
-  addNewMembers,
-  removeMember,
-  updateProjectDeadline,
-  updateProjectStatus,
-} from "../project-slice";
-import type { ProjectStatus } from "@/types";
 import { DatePicker } from "@/components/date-picker";
 import { ReusableDialog } from "@/components/re-usable-dialog";
 import { AssignTaskForm } from "../../tasks/components/assign-task-form";
@@ -65,6 +57,15 @@ import { useUser } from "@/features/auth/hooks/use-user";
 import { isPmOrAdmin } from "@/utils/is-pm-or-admin";
 import { isOwner as isOwnerApi } from "@/utils/is-owner";
 import { Placeholder } from "@/components/placeholder";
+import { Spinner } from "@/components/spinner";
+import { useProject } from "../hooks/use-project";
+import type { ProjectStatus } from "@/types";
+import { useStatusUpdate } from "../hooks/use-status-update";
+import { useEndDataUpdate } from "../hooks/use-endData-update";
+import { useUsers } from "@/features/auth/hooks/use-users";
+import { useAllocateTeam } from "../hooks/use-allocate-team";
+import { useProjectTasks } from "../hooks/use-project-tasks";
+import { useRemoveTeamMember } from "../hooks/use-remove-team-member";
 
 const ProjectDetails = () => {
   const [openAddTeamMember, setOpenAddTeamMember] = useState(false);
@@ -72,23 +73,19 @@ const ProjectDetails = () => {
   const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
   const [domainFilter, setDomainFilter] = useState("all");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const dispatch = useAppDispatch();
 
   const { projectId } = useParams<{ projectId: string }>();
-  const projects = useAppSelector((state) => state.projects.projects);
-  const tasks = useAppSelector((state) => state.tasks.tasks);
-  const { user } = useUser();
-  const isManagerOrAdmin = isPmOrAdmin(user?.user_metadata.role);
-  const project = projects.find((project) => project.id === projectId)!;
-  const isOwner = isOwnerApi(user?.user_metadata.userName, project?.createdBy);
   const [newStatus, setNewStatus] = useState<ProjectStatus | null>(null);
   const [newEndDate, setNewEndDate] = useState("");
-
-  const availableDomains = Array.from(
-    new Set(users.map((user) => user.domain))
-  );
-
-  const projectTasks = tasks.filter((task) => task.project === project?.id);
+  const { updateStatus, updatingStatus } = useStatusUpdate(projectId!);
+  const { updateEndDate, updatingEndDate } = useEndDataUpdate(projectId!);
+  const { user, loadingUser } = useUser();
+  const { project, loadingProjectInfo } = useProject(projectId!);
+  const { projectTasks, loadingTasks } = useProjectTasks(projectId!);
+  const { loadingUsers, users } = useUsers(domainFilter);
+  const { allocateTeam, allocatingTeam } = useAllocateTeam(projectId!);
+  const { removeMember, removingMember } = useRemoveTeamMember(projectId!);
+  console.log(users);
 
   // MOVE TO TOP ON MOUNT
   useEffect(() => {
@@ -102,34 +99,52 @@ const ProjectDetails = () => {
     }
   }, [project]);
 
-  const handleUserAllocation = () => {
-    dispatch(addNewMembers({ projectId: project.id as string, selectedUsers }));
+  if (loadingUser || !user) return <Spinner />;
+  if (loadingProjectInfo) return <Spinner />;
+  if (loadingUsers || !users) return <Spinner />;
+  if (loadingTasks || !projectTasks) return <Spinner />;
+  if (!project)
+    return (
+      <Placeholder
+        icon={<SearchX className="w-8 h-8" />}
+        title="Project not found."
+        description="The project you’re looking for doesn’t exist, may have been removed, or you don’t have permission to view it."
+      />
+    );
 
-    setOpenAddTeamMember(false);
-    setDomainFilter("all");
-    setSelectedUsers([]);
+  const isManagerOrAdmin = isPmOrAdmin(user.role);
+  const isOwner = isOwnerApi(user.name, project.createdBy.name);
+
+  const availableDomains = Array.from(
+    new Set(users.map((user) => user?.domain))
+  );
+
+  const handleUserAllocation = () => {
+    allocateTeam(selectedUsers, {
+      onSettled: () => {
+        setOpenAddTeamMember(false);
+        setDomainFilter("all");
+        setSelectedUsers([]);
+      },
+    });
   };
 
   const handleStatusUpdate = () => {
-    dispatch(
-      updateProjectStatus({
-        projectId: project.id as string,
-        status: newStatus!,
-      })
-    );
-
-    setIsStatusDialogOpen(false);
+    if (newStatus)
+      updateStatus(newStatus, {
+        onSettled: () => {
+          setIsStatusDialogOpen(false);
+        },
+      });
   };
   const handleDateUpdate = () => {
-    dispatch(
-      updateProjectDeadline({
-        projectId: project.id as string,
-        endDate: newEndDate,
-      })
-    );
-    setIsDateDialogOpen(false);
+    if (newEndDate)
+      updateEndDate(new Date(newEndDate), {
+        onSettled: () => {
+          setIsDateDialogOpen(false);
+        },
+      });
   };
-  console.log(project);
 
   const udpateStatusButton =
     isManagerOrAdmin && isOwner ? (
@@ -140,6 +155,7 @@ const ProjectDetails = () => {
         </Button>
       </DialogTrigger>
     ) : null;
+
   const updateDueDateButton =
     isManagerOrAdmin && isOwner ? (
       <DialogTrigger asChild>
@@ -160,20 +176,11 @@ const ProjectDetails = () => {
       </DialogTrigger>
     ) : null;
 
-  if (!project)
-    return (
-      <Placeholder
-        icon={<SearchX className="w-8 h-8" />}
-        title="Project not found."
-        description="The project you’re looking for doesn’t exist, may have been removed, or you don’t have permission to view it."
-      />
-    );
-
   const StatusIcon = statusIcons[project.status];
-  const totalTeamMembersToProject = project.team.members.length || 0;
-  const allocatedUserIDs = project.team.members.map((member) => member.id);
+  const totalTeamMembersToProject = project.members.length || 0;
+  const allocatedUserIDs = project.members.map((member) => member._id);
   const availableUsers = users.filter(
-    (user) => !allocatedUserIDs?.includes(user.id)
+    (user) => !allocatedUserIDs?.includes(user._id)
   );
   const filteredAvailableusers =
     domainFilter === "all"
@@ -214,7 +221,7 @@ const ProjectDetails = () => {
           </div>
           <p className="text-lg text-muted-foreground">
             {" "}
-            Project ID: <span className="text-sm">{project.id} </span>
+            Project ID: <span className="text-sm">{project._id} </span>
           </p>
         </div>
       </div>
@@ -325,13 +332,14 @@ const ProjectDetails = () => {
                   <Building2 className="w-5 h-5" />
                   <h3>
                     {" "}
-                    Allocated Team{" "}
-                    <Badge className="ml-2">{project.team.name}</Badge>{" "}
+                    Allocated Team <Badge className="ml-2">
+                      Team-Alpha
+                    </Badge>{" "}
                   </h3>
                 </CardTitle>
                 {isManagerOrAdmin &&
-                  project.team &&
-                  project.team.members.length > 0 && (
+                  project.members &&
+                  project.members.length > 0 && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -347,7 +355,7 @@ const ProjectDetails = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {project.team?.members.length === 0 ? (
+              {project.members.length === 0 ? (
                 <div className="text-center py-8">
                   <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3>No Team Member Allocated Yet.</h3>
@@ -366,42 +374,36 @@ const ProjectDetails = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Users className="w-4 h-4" />
-                      Team Members ({project.team?.members.length})
+                      Team Members ({project.members.length})
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2 py-2">
-                      {project.team?.members.map((member) => (
+                      {project.members.map((member) => (
                         <div
-                          key={member.id}
+                          key={member._id}
                           className="flex items-center justify-between gap-2 text-sm shadow-lg border border-input rounded py-1.5 px-2"
                         >
                           <div className="flex items-center gap-1.5">
                             <Avatar className="w-8 h-8">
                               <AvatarImage
                                 src={`/placeholder.svg?height=24&width=24`}
-                                alt={member.userName}
+                                alt={member.name}
                               />
                               <AvatarFallback className="text-xs">
-                                {member.userName
+                                {member.name
                                   .split(".")
                                   .map((n) => n[0])
                                   .join("")
                                   .toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="truncate">{member.userName}</span>
+                            <span className="truncate">{member.name}</span>
                           </div>
                           <Button
                             size="icon"
+                            disabled={removingMember}
                             variant="outline"
                             className="rounded-full hover:bg-destructive/10"
-                            onClick={() =>
-                              dispatch(
-                                removeMember({
-                                  projectId: project.id as string,
-                                  memberId: member.id,
-                                })
-                              )
-                            }
+                            onClick={() => removeMember(member._id)}
                           >
                             <X className="text-destructive" />
                           </Button>
@@ -429,7 +431,7 @@ const ProjectDetails = () => {
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {project.createdBy.replace("-", " ")}
+                    {project.createdBy.name.replace("-", " ")}
                   </span>
                 </div>
               </div>
@@ -580,22 +582,22 @@ const ProjectDetails = () => {
                           <div className="grid gap-3 max-h-60 overflow-y-auto">
                             {filteredAvailableusers.map((user) => (
                               <div
-                                key={user.id}
+                                key={user._id}
                                 className="flex items-start space-x-3 p-3 border rounded hover:bg-gray-50 dark:hover:bg-zinc-800/20"
                               >
                                 <Checkbox
-                                  id={user.id}
-                                  checked={selectedUsers.includes(user.id)}
+                                  id={user._id}
+                                  checked={selectedUsers.includes(user._id)}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
                                       setSelectedUsers([
                                         ...selectedUsers,
-                                        user.id,
+                                        user._id,
                                       ]);
                                     } else {
                                       setSelectedUsers(
                                         selectedUsers.filter(
-                                          (sUser) => sUser !== user.id
+                                          (sUser) => sUser !== user._id
                                         )
                                       );
                                     }
@@ -603,9 +605,9 @@ const ProjectDetails = () => {
                                 />
                                 <div className="flex-1 space-y-2">
                                   <div className="flex items-center justify-between">
-                                    <Label htmlFor={user.id}>
+                                    <Label htmlFor={user._id}>
                                       <h4 className="font-medium text-sm">
-                                        {user.userName}
+                                        {user.name}
                                       </h4>
                                     </Label>
                                     <Badge variant="outline">
@@ -639,7 +641,13 @@ const ProjectDetails = () => {
                             disabled={selectedUsers.length === 0}
                             onClick={handleUserAllocation}
                           >
-                            Allocate Selected Teams
+                            {allocatingTeam ? (
+                              <>
+                                <Loader /> Wait
+                              </>
+                            ) : (
+                              "Allocate Selected Teams"
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -691,7 +699,7 @@ const ProjectDetails = () => {
                                   Planning
                                 </SelectItem>
                                 <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="on-hold">On Hold</SelectItem>
+                                <SelectItem value="on_hold">On Hold</SelectItem>
                                 <SelectItem value="completed">
                                   Completed
                                 </SelectItem>
@@ -712,7 +720,13 @@ const ProjectDetails = () => {
                               onClick={handleStatusUpdate}
                               disabled={newStatus === project.status}
                             >
-                              Update Status
+                              {updatingStatus ? (
+                                <>
+                                  <Loader /> Wait
+                                </>
+                              ) : (
+                                " Update Status"
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -764,7 +778,13 @@ const ProjectDetails = () => {
                                 new Date(project.endDate).getTime()
                               }
                             >
-                              Update Due Date
+                              {updatingEndDate ? (
+                                <>
+                                  <Loader /> Wait
+                                </>
+                              ) : (
+                                "Update Due Date"
+                              )}
                             </Button>
                           </div>
                         </div>

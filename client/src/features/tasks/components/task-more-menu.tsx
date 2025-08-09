@@ -7,21 +7,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAppDispatch } from "@/store/hooks";
 import type { Task } from "@/types";
 import { EditIcon, MoreHorizontal, TrashIcon } from "lucide-react";
-import { deleteTask, updateTaskStatus } from "../task-slice";
 import { useUser } from "@/features/auth/hooks/use-user";
 import { isOwner as isOwnerApi } from "@/utils/is-owner";
+import { Spinner } from "@/components/spinner";
+import { useStatusUpdate } from "../hooks/use-status-update";
+import { useDeleteTask } from "../hooks/use-delete-task";
 
 type TaskMoreMenuProps = {
   task: Task;
 };
 
 export const TaskMoreMenu = ({ task }: TaskMoreMenuProps) => {
-  const dispatch = useAppDispatch();
-  const { user } = useUser();
-  const isOwner = isOwnerApi(user?.user_metadata.userName, task.createdBy);
+  const { user, loadingUser } = useUser();
+  const { updateStatus } = useStatusUpdate(task._id);
+  const { deleteTask } = useDeleteTask(task._id);
+
+  if (!user || loadingUser) return <Spinner />;
+  const isOwner = isOwnerApi(user?.name, task.createdBy.name);
 
   const editButton = isOwner ? (
     <DropdownMenuItem>
@@ -29,7 +33,7 @@ export const TaskMoreMenu = ({ task }: TaskMoreMenuProps) => {
     </DropdownMenuItem>
   ) : null;
   const deleteButton = isOwner ? (
-    <DropdownMenuItem onClick={() => dispatch(deleteTask({ taskId: task.id }))}>
+    <DropdownMenuItem onClick={() => deleteTask()}>
       <TrashIcon className="text-destructive/80" />
       Delete
     </DropdownMenuItem>
@@ -42,27 +46,13 @@ export const TaskMoreMenu = ({ task }: TaskMoreMenuProps) => {
       <DropdownMenuContent className="w-[180px]">
         <DropdownMenuLabel>Change Status</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={() =>
-              dispatch(updateTaskStatus({ taskId: task.id, status: "done" }))
-            }
-          >
+          <DropdownMenuItem onClick={() => updateStatus("done")}>
             Mark as Done
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              dispatch(
-                updateTaskStatus({ taskId: task.id, status: "progress" })
-              )
-            }
-          >
+          <DropdownMenuItem onClick={() => updateStatus("progress")}>
             Set to progress
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              dispatch(updateTaskStatus({ taskId: task.id, status: "review" }))
-            }
-          >
+          <DropdownMenuItem onClick={() => updateStatus("review")}>
             Set to review
           </DropdownMenuItem>
         </DropdownMenuGroup>

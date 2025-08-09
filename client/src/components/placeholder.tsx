@@ -1,12 +1,14 @@
 import type React from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import type { ReactNode } from "react";
 
 interface EmptyStateProps {
   title: string;
   description: string;
   icon: React.ReactNode;
   className?: string;
+  trigger?: ReactNode;
 }
 
 export const Placeholder = ({
@@ -14,6 +16,7 @@ export const Placeholder = ({
   description,
   icon,
   className = "",
+  trigger,
 }: EmptyStateProps) => {
   return (
     <Card className={`border-dashed border-2 ${className}`}>
@@ -25,6 +28,7 @@ export const Placeholder = ({
         <p className="text-gray-600 mb-6 max-w-md leading-relaxed">
           {description}
         </p>
+        {trigger}
       </CardContent>
     </Card>
   );

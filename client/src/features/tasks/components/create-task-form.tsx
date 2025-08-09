@@ -10,33 +10,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppDispatch } from "@/store/hooks";
-import type { Priority, Task, TaskType } from "@/types";
+import type { Priority, TaskType } from "@/types";
 import { taskPriorityOptions, taskTypeOptions } from "@/utils/constants";
 import { format } from "date-fns";
-import { Plus, Target, X } from "lucide-react";
+import { Loader, Plus, Target, X } from "lucide-react";
 import {
-  useId,
   useState,
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { addTask } from "../task-slice";
 import { useUser } from "@/features/auth/hooks/use-user";
+import { Spinner } from "@/components/spinner";
+import type { NewTaskPayload } from "@/api/task-service";
+import { useCreateTask } from "../hooks/use-create-task";
 
-const initialState: Omit<Task, "id" | "createdAt" | "updatedAt" | "status"> = {
+const initialState: NewTaskPayload = {
   title: "",
   description: "",
-  assignee: null,
-  project: null,
-  isPersonal: true,
-  type: "feature",
   priority: "medium",
-  dueDate: null,
+  type: "feature",
+  dueDate: format(new Date(), "dd MM yyyy"),
   tags: [],
   estimatedTime: "",
-  createdBy: "",
 };
 
 type CreateTaskFormProps = {
@@ -44,13 +40,13 @@ type CreateTaskFormProps = {
 };
 
 export const CreateTaskForm = ({ onClose }: CreateTaskFormProps) => {
-  const id = useId();
   const [formData, setFormData] = useState(initialState);
-  const [loading, setLoading] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const dispatch = useAppDispatch();
-  const { user } = useUser();
+  const { user, loadingUser } = useUser();
+  const { createTask, creatingTask } = useCreateTask();
+
+  if (!user || loadingUser) return <Spinner />;
 
   const handleOnChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -83,20 +79,16 @@ export const CreateTaskForm = ({ onClose }: CreateTaskFormProps) => {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const newTask: Task = {
-      id: `task-${Math.floor(Math.random() * 2919)}-${id}`,
+    const newTask = {
       ...formData,
-      status: "todo",
       tags: selectedTags,
-      createdBy: user?.user_metadata.userName, // this'll be current user
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    } satisfies NewTaskPayload as NewTaskPayload;
 
-    dispatch(addTask({ task: newTask }));
-
-    onClose?.();
+    createTask(newTask, {
+      onSettled: () => {
+        onClose?.();
+      },
+    });
   };
   return (
     <Card className="w-full shadow-none border-none py-6">
@@ -222,7 +214,15 @@ export const CreateTaskForm = ({ onClose }: CreateTaskFormProps) => {
             <Button type="button" variant="outline" onClick={() => onClose?.()}>
               Cancel
             </Button>
-            <Button type="submit">{loading ? "Wait..." : "Create Task"}</Button>
+            <Button type="submit">
+              {creatingTask ? (
+                <>
+                  <Loader /> Wait
+                </>
+              ) : (
+                "Create Task"
+              )}
+            </Button>
           </div>
         </form>
       </CardContent>

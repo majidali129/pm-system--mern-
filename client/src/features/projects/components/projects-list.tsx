@@ -5,30 +5,22 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { ProjectStatusSelect } from "./project-status-select";
 import { applySearch } from "../project-slice";
 import { useUser } from "@/features/auth/hooks/use-user";
-import type { Role } from "@/services/user-service";
 import { Placeholder } from "@/components/placeholder";
 import { emptyProjectMsg } from "@/utils/constants";
+import { useProjects } from "../hooks/use-projects";
+import { Spinner } from "@/components/spinner";
 
 export const ProjectsList = () => {
-  const projects = useAppSelector((state) => state.projects.projects);
   const query = useAppSelector((state) => state.projects.query).toLowerCase();
   const { status } = useAppSelector((state) => state.projects.projectFilters);
   const dispatch = useAppDispatch();
-  const { user } = useUser();
-  const role = user?.user_metadata.role as Role;
+  const { projects, loadingProjects } = useProjects();
+  const { user, loadingUser } = useUser();
+  if (!user || loadingUser) return <Spinner />;
+  if (loadingProjects || !projects) return <Spinner />;
+  const role = user.role;
 
-  const rProjects =
-    role === "admin"
-      ? projects
-      : role === "project-manager"
-      ? projects.filter(
-          (project) => project.createdBy === user?.user_metadata.userName
-        )
-      : projects.filter((project) =>
-          project.team?.members.some((member) => member?.id === user?.id)
-        );
-
-  const filteredProjects = rProjects
+  const filteredProjects = projects
     .filter(
       (project) =>
         project.name.toLowerCase().includes(query) ||
@@ -63,7 +55,7 @@ export const ProjectsList = () => {
       {filteredProjects.length ? (
         <ul className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {filteredProjects.map((project) => (
-            <ProjectItem key={project.id} project={project} />
+            <ProjectItem key={project._id} project={project} />
           ))}
         </ul>
       ) : (

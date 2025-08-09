@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { homePath } from "@/paths";
 import { useState, type FormEvent } from "react";
 import { Loader } from "lucide-react";
 import {
@@ -13,15 +12,16 @@ import { ErrorField } from "@/components/form/error-field";
 import { FormItem } from "@/components/form/form-item";
 import { Button } from "@/components/ui/button";
 import { useSignUp } from "../hooks/use-sign-up";
-import type { Role } from "@/services/user-service";
 import { SortFilterSelect } from "@/components/sort-filter-select";
+import type { Role } from "@/types";
 
 export const SignUpForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<Role>("user");
-  const [userName, setUserName] = useState("");
+  const [name, setUsername] = useState("");
+  const [domain, setDomain] = useState("");
 
   const { signUp, signUpLoading } = useSignUp();
 
@@ -29,7 +29,7 @@ export const SignUpForm = () => {
     e.preventDefault();
     if (!email || !password) return;
     signUp(
-      { email, password, role, userName },
+      { name, email, password, role, domain },
       {
         onSettled: () => {
           setEmail("");
@@ -44,9 +44,7 @@ export const SignUpForm = () => {
     <div className="w-full max-w-sm 2xl:max-w-lg">
       <Card className="shadow-xl py-7">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            <Link to={homePath()}>TaskFlow</Link>
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">TaskFlow</CardTitle>
           <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,11 +58,11 @@ export const SignUpForm = () => {
               type="email"
             />
             <FormItem
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              name="userName"
-              label="Username"
-              placeholder="Enter your username"
+              value={name}
+              onChange={(e) => setUsername(e.target.value)}
+              name="name"
+              label="Full Name"
+              placeholder="Enter your full name"
               type="text"
             />
             <FormItem
@@ -95,8 +93,16 @@ export const SignUpForm = () => {
               options={[
                 { label: "User", value: "user" },
                 { label: "Admin", value: "admin" },
-                { label: "Project-Manager", value: "project-manager" },
+                { label: "Project Manager", value: "project_manager" },
               ]}
+            />
+            <FormItem
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              name="domain"
+              label="Work domain"
+              placeholder="Enter your domain. i.e design or frontend"
+              type="text"
             />
             <Button type="submit" className="w-full">
               {signUpLoading ? (

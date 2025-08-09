@@ -13,72 +13,46 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "lucide-react";
 import { Link } from "react-router";
 import { projectDetailsPath, projectsPath } from "@/paths";
-import { useAppSelector } from "@/store/hooks";
 import { useUser } from "@/features/auth/hooks/use-user";
-import type { Role } from "@/services/user-service";
 import { emptyActiveProjectMsg, projectStatusColor } from "@/utils/constants";
-import type { Project } from "@/types";
+import type { Project, Role } from "@/types";
 import { format } from "date-fns";
 import { Placeholder } from "@/components/placeholder";
+import { useProjects } from "@/features/projects/hooks/use-projects";
+import { Spinner } from "@/components/spinner";
+import { useTasks } from "@/features/tasks/hooks/use-tasks";
 
 export const Dashboard = () => {
-  const projects = useAppSelector((state) => state.projects.projects);
-  const tasks = useAppSelector((state) => state.tasks.tasks);
+  const { projects, loadingProjects } = useProjects();
+  const { tasks, loadingTasks } = useTasks();
   const { user } = useUser();
-  const currentUsername = user?.user_metadata.userName;
-  const role = user?.user_metadata.role as Role;
+  const currentUsername = user?.name;
+  const role = user?.role as Role;
 
-  const activeProjects = projects.filter((project) => {
-    if (role === "admin") return project.status === "active";
+  if (loadingProjects || !projects) return <Spinner />;
+  if (loadingTasks || !tasks) return <Spinner />;
 
-    if (role === "project-manager") {
-      return (
-        project.status === "active" && project.createdBy === currentUsername
-      );
-    }
+  const activeProjects = projects.filter(
+    (project) => project.status === "active"
+  );
 
-    // Normal user
-    return (
-      project.status === "active" &&
-      project.team?.members.some(
-        (member) => member.userName === currentUsername
-      )
-    );
-  });
-
-  const completedTasks = tasks.filter((task) => {
-    if (role === "admin") return task.status === "done";
-
-    if (role === "project-manager") {
-      return (
-        task.status === "done" &&
-        (task.createdBy === currentUsername || task.isPersonal)
-      );
-    }
-
-    // Normal user
-    return (
-      task.status === "done" &&
-      (task.isPersonal ||
-        task.createdBy === currentUsername ||
-        task.assignee === currentUsername)
-    );
-  });
+  const completedTasks = tasks.filter((task) => task.status === "done");
 
   const getTeamMembers = () => {
     const teamMemberSet = new Set<string>();
 
     projects.forEach((project) => {
       const isOwnedByPM =
-        role === "project-manager" && project.createdBy === currentUsername;
+        role === "project_manager" &&
+        project.createdBy.name === currentUsername;
       const isUserTeamMember =
         role === "user" &&
-        project.team?.members.some((m) => m?.userName === currentUsername);
+        project.members.some((m) => m.name === currentUsername);
 
       if (role === "admin" || isOwnedByPM || isUserTeamMember) {
-        project.team?.members.forEach((member) => {
-          if (member?.userName !== currentUsername) {
-            teamMemberSet.add(member?.userName);
+        project.members.forEach((member) => {
+          if (member.name !== currentUsername) {
+            teamMemberSet.add(member.name);
           }
         });
       }
@@ -102,9 +76,10 @@ export const Dashboard = () => {
 
       if (role === "admin") return isInRange;
 
-      if (role === "project-manager") {
+      if (role === "project_manager") {
         return (
-          isInRange && (task.isPersonal || task.createdBy === currentUsername)
+          isInRange &&
+          (task.isPersonal || task.createdBy.name === currentUsername)
         );
       }
 
@@ -112,22 +87,15 @@ export const Dashboard = () => {
       return (
         isInRange &&
         (task.isPersonal ||
-          task.createdBy === currentUsername ||
-          task.assignee === currentUsername)
+          task.createdBy.name === currentUsername ||
+          task.assignee?.name === currentUsername)
       );
     });
   };
 
-  const filteredProjects = projects.filter((project) => {
-    if (role === "admin") return project.status === "active";
-    if (role === "project-manager")
-      return (
-        project.status === "active" && project.createdBy === currentUsername
-      );
-    return project.team.members.some(
-      (member) => member?.userName === currentUsername
-    );
-  });
+  const filteredProjects = projects.filter(
+    (project) => project.status === "active"
+  );
 
   return (
     <section className="space-y-10 md:space-y-8 ">
@@ -172,7 +140,7 @@ export const Dashboard = () => {
         {filteredProjects.length > 0 ? (
           <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filteredProjects.map((project) => (
-              <ProjectItem key={project.id} project={project} />
+              <ProjectItem key={project._id} project={project} />
             ))}
           </ul>
         ) : (
@@ -189,11 +157,11 @@ export const Dashboard = () => {
 
 function ProjectItem({ project }: { project: Project }) {
   return (
-    <Card key={project.id} className="b group ">
+    <Card key={project._id} className="b group ">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <Link to={`/${projectDetailsPath(project.id as string)}`}>
+            <Link to={`/${projectDetailsPath(project._id)}`}>
               <CardTitle className=" group-hover:text-primary transition-colors">
                 {project.name}
               </CardTitle>

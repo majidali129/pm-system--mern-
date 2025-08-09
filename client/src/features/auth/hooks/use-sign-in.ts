@@ -1,6 +1,4 @@
-// import { signUpUser } from "@/services/user.service";
-import { signInUser } from "@/services/user-service";
-import type { AuthApiError } from "@supabase/supabase-js";
+import { loginUser, type LoginPayload } from "@/api/auth-service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -9,18 +7,20 @@ export const useSignIn = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { mutate: signIn, isPending: signInLoading } = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
-      signInUser({ email: data.email, password: data.password }),
+  const { mutate: login, isPending: loginLoading } = useMutation({
+    mutationFn: (payload: LoginPayload) => loginUser(payload),
     onSuccess: (data) => {
-      toast.success("User registered 🚀");
-      queryClient.setQueryData(["user"], data.user);
+      localStorage.setItem("accessToken", data.data.accessToken);
+      localStorage.removeItem("isManual");
+      toast.success(data.message || "Login successf");
+      queryClient.setQueryData(["user"], data);
       navigate("/");
     },
-    onError: (error: AuthApiError) => {
+    onError: (error) => {
+      console.log(error);
       toast.error(error.message);
     },
   });
 
-  return { signIn, signInLoading };
+  return { login, loginLoading };
 };

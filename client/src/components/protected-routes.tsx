@@ -1,7 +1,7 @@
 import { useUser } from "@/features/auth/hooks/use-user";
 import { signInPath } from "@/paths";
 import { useEffect, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { Spinner } from "./spinner";
 
 type ProtectedRoutesProps = {
@@ -9,19 +9,22 @@ type ProtectedRoutesProps = {
 };
 
 export const ProtectedRoutes = ({ children }: ProtectedRoutesProps) => {
-  const { isAuthenticated, loadingUser } = useUser();
+  const { isAuthenticated, loadingUser, user } = useUser();
   const navigate = useNavigate();
+  const pathName = useLocation().pathname;
 
   useEffect(() => {
-    if (!isAuthenticated && !loadingUser) navigate(signInPath());
-    // if (!isAuthenticated && !loadingUser) navigate(`/auth/sign-in`);
-  }, [isAuthenticated, loadingUser, navigate]);
-
-  if (loadingUser)
+    if (!isAuthenticated && !loadingUser && !user) {
+      navigate(signInPath());
+      return;
+    }
+  }, [isAuthenticated, loadingUser, navigate, user, pathName]);
+  if (!user && loadingUser)
     return (
-      <div className="h-screen w-full flex-center">
+      <div className="h-screen flex-1 w-full flex-center">
         <Spinner />
       </div>
     );
+
   return <>{children}</>;
 };

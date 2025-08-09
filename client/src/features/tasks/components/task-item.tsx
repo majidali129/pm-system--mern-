@@ -27,7 +27,7 @@ const isOverdue = (task: Task) => {
 export const TaskItem = ({ task }: TaskItemProps) => {
   return (
     <Card
-      key={task.id}
+      key={task._id}
       className={cn(
         `hover:shadow-card transition-shadow duration-300 gap-0 py-6 *:px-4${
           isOverdue(task) ? "border-destructive/20" : ""
@@ -60,18 +60,18 @@ export const TaskItem = ({ task }: TaskItemProps) => {
             {task.description}
           </CardDescription>
           <div className="flex items-center justify-between">
-            {task.createdBy !== "" && (
+            {task.createdBy.name !== "" && (
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={task.createdBy} />
+                  <AvatarImage src={task.createdBy.avatar} />
                   <AvatarFallback className="text-xs">
-                    {task.createdBy.length
-                      ? task.createdBy?.slice(0, 2).toLocaleUpperCase()
-                      : task.assignee?.slice(0, 2).toLocaleUpperCase()}
+                    {task.createdBy.name.length
+                      ? task.createdBy.name?.slice(0, 2).toLocaleUpperCase()
+                      : task.assignee?.name.slice(0, 2).toLocaleUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-muted-foreground">
-                  {task.createdBy}
+                  {task.createdBy.name}
                 </span>
               </div>
             )}

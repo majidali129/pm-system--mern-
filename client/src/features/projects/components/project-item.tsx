@@ -22,9 +22,9 @@ export const ProjectItem = ({ project }: ProjectItemProps) => {
   const StatusIcon = statusIcons[project.status];
 
   return (
-    <Link to={`${project.id}`}>
+    <Link to={`${project._id}`}>
       <Card
-        key={project.id}
+        key={project._id}
         className="hover:shadow-card transition-shadow duration-300 hover:-translate-y-1 gap-0 py-6 *:px-4"
       >
         {/* Same card content */}

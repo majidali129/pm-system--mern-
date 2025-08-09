@@ -24,7 +24,7 @@ export const projects: Project[] = [
   {
     id: "proj-002",
     name: "E-commerce Dashboard",
-    description: "Admin dashboard for order and inventory management.",
+    description: "Admin dashboard for order and in  ventory management.",
     status: "on-hold",
     progress: 60,
     budget: 392,

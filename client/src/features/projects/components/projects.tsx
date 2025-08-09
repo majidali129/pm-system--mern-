@@ -6,11 +6,14 @@ import { CreateProjectForm } from "./create-project-form";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { useUser } from "@/features/auth/hooks/use-user";
 import { isPmOrAdmin } from "@/utils/is-pm-or-admin";
-import type { Role } from "@/services/user-service";
+import { Spinner } from "@/components/spinner";
 
 export const Projects = () => {
-  const { user } = useUser();
-  const role = user?.user_metadata.role as Role;
+  const { user, loadingUser } = useUser();
+
+  if (!user || loadingUser) return <Spinner />;
+
+  const role = user.role;
   const isManagerOrAdmin = isPmOrAdmin(role);
 
   const createProjectButton = isManagerOrAdmin ? (
@@ -25,7 +28,7 @@ export const Projects = () => {
   const renderDescription =
     role === "admin"
       ? "Manage and oversee all projects across the platform"
-      : role === "project-manager"
+      : role === "project_manager"
       ? "Plan, manage, and track your assigned projects"
       : "View and work on projects you are part of";
 

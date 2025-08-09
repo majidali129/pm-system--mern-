@@ -1,7 +1,7 @@
-import type { Role } from "@/services/user-service";
+import type { Role } from "@/types";
 
 export const isPmOrAdmin = (role: Role) => {
   if (!role) return false;
 
-  return role === "project-manager" || role === "admin";
+  return role === "project_manager" || role === "admin";
 };

@@ -6,54 +6,30 @@ import { TaskPrioritySelect } from "./task-priority-select";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { applySearch } from "../task-slice";
 import { useUser } from "@/features/auth/hooks/use-user";
-import type { Role } from "@/services/user-service";
 import { Placeholder } from "@/components/placeholder";
 import { emptyTaskMsg } from "@/utils/constants";
+import { Spinner } from "@/components/spinner";
+import { useTasks } from "../hooks/use-tasks";
+import { useProjects } from "@/features/projects/hooks/use-projects";
 
 export const TaskList = () => {
-  const { user } = useUser();
-  const currentUsername = user?.user_metadata.userName;
-  const role = user?.user_metadata.role as Role;
-  const tasks = useAppSelector((state) => state.tasks.tasks);
-  const projects = useAppSelector((state) => state.projects.projects);
-  const dispatch = useAppDispatch();
-
-  // for pm
-  const createdProjects = projects
-    .filter((project) => project.createdBy === user?.user_metadata.userName)
-    .map((p) => p.id);
-  const teamMembersUsernames = projects
-    .filter((p) => p.createdBy === user?.user_metadata.userName)
-    .flatMap((p) => p.team?.members ?? [])
-    .map((member) => member.id);
-
   const query = useAppSelector((state) => state.tasks.query).toLowerCase();
   const { status, priority } = useAppSelector(
     (state) => state.tasks.taskFilters
   );
+  const dispatch = useAppDispatch();
 
-  const rTasks = tasks.filter((task) => {
-    if (role === "admin") return true;
-    if (role === "project-manager") {
-      const isOwnedProject =
-        task.project && createdProjects.includes(task.project);
-      const isAssignedToTeam =
-        task.assignee && teamMembersUsernames.includes(task.assignee);
-      const isPersonalAndOwner =
-        task.isPersonal && task.createdBy === currentUsername;
-      return isOwnedProject || isAssignedToTeam || isPersonalAndOwner;
-    }
+  const { user, loadingUser } = useUser();
+  const { tasks, loadingTasks } = useTasks();
+  const { projects, loadingProjects } = useProjects();
 
-    // for normal user
+  if (!user || loadingUser) return <Spinner />;
+  if (loadingTasks || !tasks) return <Spinner />;
+  if (loadingProjects || !projects) return <Spinner />;
 
-    return (
-      task.assignee === currentUsername ||
-      (task.isPersonal && task.createdBy === currentUsername) ||
-      task.createdBy === currentUsername
-    );
-  });
+  const role = user.role;
 
-  const filteredTasks = rTasks
+  const filteredTasks = tasks
     .filter(
       (task) =>
         task.title.toLowerCase().includes(query) ||
@@ -64,6 +40,8 @@ export const TaskList = () => {
       const matchesPriority = priority === "all" || task.priority === priority;
       return matchesSttus && matchesPriority;
     });
+
+  console.log(filteredTasks);
 
   // TODO: ADMIN Can filter by project, assignee as well
   return (
@@ -92,7 +70,7 @@ export const TaskList = () => {
       {filteredTasks.length > 0 ? (
         <ul className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {filteredTasks.map((task) => (
-            <TaskItem task={task} key={task.id} />
+            <TaskItem task={task} key={task._id} />
           ))}
         </ul>
       ) : (

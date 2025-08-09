@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +29,7 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
+// import { useProjectStats } from "@/features/projects/hooks/use-project-stats";
 
 // Mock data for reports
 const mockProjectStats = {
@@ -172,7 +171,9 @@ const statusColors = {
 export const Reports = () => {
   const [dateRange, setDateRange] = useState("30");
   const [activeTab, setActiveTab] = useState("overview");
+  // const { projectStats } = useProjectStats();
 
+  // console.log("projectStats", projectStats);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

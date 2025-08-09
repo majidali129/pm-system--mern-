@@ -19,7 +19,7 @@ export const AccountDropdown = () => {
       <DropdownMenuTrigger asChild className="cursor-pointer">
         <Avatar className="size-10">
           <AvatarFallback>
-            {user?.user_metadata.userName.slice(0, 2).toUpperCase()}
+            {user?.name?.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>

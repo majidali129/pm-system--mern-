@@ -10,4 +10,4 @@ export const reportsPath = () => "reports";
 export const profilePath = () => "profile";
 export const settingsPath = () => "settings";
 export const signUpPath = () => "auth/sign-up";
-export const signInPath = () => "auth/sign-in";
+export const signInPath = () => `auth/sign-in`;

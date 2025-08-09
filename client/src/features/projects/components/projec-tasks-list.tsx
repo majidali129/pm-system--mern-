@@ -1,4 +1,6 @@
+import { Placeholder } from "@/components/placeholder";
 import { ReusableDialog } from "@/components/re-usable-dialog";
+import { Spinner } from "@/components/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,21 +13,62 @@ import {
 import { DialogTrigger } from "@/components/ui/dialog";
 import { useUser } from "@/features/auth/hooks/use-user";
 import { AssignTaskForm } from "@/features/tasks/components/assign-task-form";
-import { useAppSelector } from "@/store/hooks";
 import type { Project } from "@/types";
 import { getPriorityColors, taskStatusColors } from "@/utils/constants";
 import { isPmOrAdmin } from "@/utils/is-pm-or-admin";
 import { format } from "date-fns";
-import { Calendar, ClipboardList, Plus, User } from "lucide-react";
+import {
+  Calendar,
+  ClipboardList,
+  File,
+  Plus,
+  User,
+  UserPlus,
+} from "lucide-react";
+import { useProjectTasks } from "../hooks/use-project-tasks";
+import { isOwner } from "@/utils/is-owner";
 
 type ProjectTasksListProps = {
   project: Project;
 };
 export const ProjectTasksList = ({ project }: ProjectTasksListProps) => {
-  const allTasks = useAppSelector((state) => state.tasks.tasks);
-  const projectTasks = allTasks.filter((task) => task.project === project.id);
-  const { user } = useUser();
-  const ismanagerOrAdmin = isPmOrAdmin(user?.user_metadata.role);
+  const { user, loadingUser } = useUser();
+  const { projectTasks, loadingTasks } = useProjectTasks(project._id);
+
+  if (!user || loadingUser) return <Spinner />;
+  if (loadingTasks || !projectTasks) return <Spinner />;
+
+  const projectMembers = project.members.length || 0;
+  const ismanagerOrAdmin = isPmOrAdmin(user.role);
+  const assignTaskButton =
+    ismanagerOrAdmin &&
+    isOwner(user.name, project.createdBy.name) &&
+    projectMembers > 0 ? (
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Assign Task
+        </Button>
+      </DialogTrigger>
+    ) : null;
+
+  if (projectTasks.length === 0)
+    return (
+      <Placeholder
+        icon={<File />}
+        title="No tasks assigned to anyone yet!"
+        description="Assign task to project members to get it done"
+        trigger={
+          project.members.length > 0 ? (
+            <ReusableDialog
+              className="sm:!max-w-[35rem]  max-h-[50vh] md:max-h-[90vh] overflow-y-auto"
+              children={<AssignTaskForm project={project} />}
+              trigger={assignTaskButton}
+            />
+          ) : null
+        }
+      />
+    );
   return (
     <Card>
       <CardHeader>
@@ -34,7 +77,7 @@ export const ProjectTasksList = ({ project }: ProjectTasksListProps) => {
             <ClipboardList className="w-5 h-5" />
             Project Tasks ({projectTasks.length})
           </CardTitle>
-          {ismanagerOrAdmin && project.team.members.length > 0 && (
+          {ismanagerOrAdmin && project.members.length > 0 && (
             <ReusableDialog
               className="sm:!max-w-[35rem]  max-h-[50vh] md:max-h-[90vh] overflow-y-auto "
               children={<AssignTaskForm project={project} />}
@@ -54,7 +97,7 @@ export const ProjectTasksList = ({ project }: ProjectTasksListProps) => {
       <CardContent>
         <div className="space-y-3 ">
           {projectTasks.map((task) => (
-            <div key={task.id} className="border rounded-lg p-4">
+            <div key={task._id} className="border rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   <h4 className="font-medium mb-1">{task.title}</h4>
@@ -80,7 +123,7 @@ export const ProjectTasksList = ({ project }: ProjectTasksListProps) => {
                 <div className="flex items-center max-md:justify-between gap-4">
                   <div className="flex items-center gap-1">
                     <User className="w-3 h-3" />
-                    <span>{task.assignee}</span>
+                    <span>{task.assignee?.name}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />

@@ -13,6 +13,7 @@ import { deleteProject } from "../project-slice";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/features/auth/hooks/use-user";
 import { isPmOrAdmin } from "@/utils/is-pm-or-admin";
+import { SpinnerMini } from "@/components/spinner-mini";
 
 type ProjectMoreMenuProps = {
   project: Project;
@@ -21,17 +22,19 @@ type ProjectMoreMenuProps = {
 export const ProjectMoreMenu = ({ project }: ProjectMoreMenuProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, loadingUser } = useUser();
 
-  const isManagerOrAdmin = isPmOrAdmin(user?.user_metadata.role);
-  const isOwner = user?.user_metadata.userName === project.createdBy;
+  if (!user || loadingUser) return <SpinnerMini />;
+
+  const isManagerOrAdmin = isPmOrAdmin(user.role);
+  const isOwner = user?.name === project.createdBy.name;
 
   const deleteButton =
     isManagerOrAdmin && isOwner ? (
       <DropdownMenuItem
         onClick={(e) => {
           e.stopPropagation();
-          dispatch(deleteProject({ id: project.id as string }));
+          dispatch(deleteProject({ id: project._id as string }));
         }}
       >
         <TrashIcon className="size-4 text-destructive/80" /> Delete
@@ -57,7 +60,7 @@ export const ProjectMoreMenu = ({ project }: ProjectMoreMenuProps) => {
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`${project.id}`);
+              navigate(`${project._id}`);
             }}
           >
             View Details

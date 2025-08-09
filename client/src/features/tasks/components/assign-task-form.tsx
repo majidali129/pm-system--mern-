@@ -10,19 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppDispatch } from "@/store/hooks";
-import type { Priority, Project, Task, TaskType } from "@/types";
+import type { Priority, Project, TaskType } from "@/types";
 import { taskPriorityOptions, taskTypeOptions } from "@/utils/constants";
 import { format } from "date-fns";
-import { Plus, Target, X } from "lucide-react";
+import { Loader, Plus, Target, X } from "lucide-react";
 import {
-  useId,
   useState,
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { assignTaskToMember } from "../task-slice";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -32,19 +29,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUser } from "@/features/auth/hooks/use-user";
+import { Spinner } from "@/components/spinner";
+import type { AssignTaskPayload } from "@/api/task-service";
+import { useAssignTask } from "../hooks/use-assign-task";
 
-const initialState: Omit<Task, "id" | "createdAt" | "updatedAt" | "status"> = {
+const initialState: AssignTaskPayload = {
   title: "",
   description: "",
-  project: "",
-  assignee: "",
   type: "feature",
   priority: "medium",
-  dueDate: null,
   tags: [],
   estimatedTime: "",
-  createdBy: "",
-  isPersonal: false,
+  dueDate: format(new Date(), "dd MM yyyy"),
+  assignee: "",
+  project: "",
 };
 
 type AssignTaskFormProps = {
@@ -52,13 +50,14 @@ type AssignTaskFormProps = {
   onClose?: () => void;
 };
 export const AssignTaskForm = ({ project, onClose }: AssignTaskFormProps) => {
-  const id = useId();
   const [formData, setFormData] = useState(initialState);
   const [newTag, setNewTag] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const dispatch = useAppDispatch();
-  const { user } = useUser();
-  const projectTeamMembers = project.team?.members;
+  const { user, loadingUser } = useUser();
+  const { assignTask, assigningTask } = useAssignTask(project._id);
+
+  if (!user || loadingUser) return <Spinner />;
+  const projectTeamMembers = project.members;
 
   const handleOnChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -92,19 +91,16 @@ export const AssignTaskForm = ({ project, onClose }: AssignTaskFormProps) => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const newTask = {
-      id: `task-${Math.floor(Math.random() * 2919)}-${id}`,
       ...formData,
-      status: "todo",
       tags: selectedTags,
-      project: project.id as string,
-      createdBy: user?.user_metadata.userName,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } satisfies Task as Task;
+      project: project._id,
+    } satisfies AssignTaskPayload as AssignTaskPayload;
 
-    dispatch(assignTaskToMember({ task: newTask }));
-
-    onClose?.();
+    assignTask(newTask, {
+      onSettled: () => {
+        onClose?.();
+      },
+    });
   };
 
   return (
@@ -149,8 +145,8 @@ export const AssignTaskForm = ({ project, onClose }: AssignTaskFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 {projectTeamMembers?.map((member) => (
-                  <SelectItem key={member.id} value={member.userName}>
-                    {member.userName}
+                  <SelectItem key={member._id} value={member._id}>
+                    {member.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -251,7 +247,15 @@ export const AssignTaskForm = ({ project, onClose }: AssignTaskFormProps) => {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Assign Task</Button>
+            <Button type="submit">
+              {assigningTask ? (
+                <>
+                  <Loader /> Wait
+                </>
+              ) : (
+                "Assign Task"
+              )}
+            </Button>
           </div>
         </form>
       </CardContent>

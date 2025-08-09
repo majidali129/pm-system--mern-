@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Apple, Chrome, Github, Loader, Twitter } from "lucide-react";
 import { Link } from "react-router";
-import { homePath } from "@/paths";
 import { useState, type FormEvent } from "react";
 import { FormItem } from "@/components/form/form-item";
 import { useSignIn } from "../hooks/use-sign-in";
@@ -17,12 +16,12 @@ export const SignInForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { signIn, signInLoading } = useSignIn();
+  const { login, loginLoading } = useSignIn();
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-    signIn(
+    login(
       { email, password },
       {
         onSettled: () => {
@@ -32,13 +31,12 @@ export const SignInForm = () => {
       }
     );
   };
+
   return (
     <div className="w-full max-w-sm 2xl:max-w-lg">
       <Card className="shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            <Link to={homePath()}>TaskFlow</Link>
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">TaskFlow</CardTitle>
           <CardDescription>Sign in to your account"</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -81,7 +79,7 @@ export const SignInForm = () => {
               type="password"
             />
             <Button type="submit" className="w-full">
-              {signInLoading ? (
+              {loginLoading ? (
                 <>
                   <Loader /> Wait
                 </>
