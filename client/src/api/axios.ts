@@ -39,7 +39,6 @@ api.interceptors.response.use(
         status: error.response.data.status || "error",
         isOperational: Boolean(error.response.data.isOperational),
       };
-      // console.log(customError);
 
       if (customError.statusCode === 401) {
         const isManual = localStorage.getItem("isManual");
