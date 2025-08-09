@@ -30,7 +30,6 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    console.log(error);
     if (error.response?.data) {
       const customError: CustomError = {
         name: error.name,
