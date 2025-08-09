@@ -2,10 +2,10 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx --watch --env-file .env src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsx --watch --env-file .env src/server.ts",
+    "start": "node dist/server.js",
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "lint": "eslint",
@@ -15,6 +15,9 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.14.0",
+  "_moduleAliases": {
+    "@/*": "dist/*"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
@@ -24,6 +27,7 @@
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "mongoose": "^8.17.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2"

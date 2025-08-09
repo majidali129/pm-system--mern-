@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import cors, { CorsOptions } from "cors";
 import { connectDB, disconnectFromDB } from "./lib/connect-db";
+import "module-alias/register";
 
 import v1Routes from "@/routes";
 import { globalErrorController } from "./controllers/global-error-controller";
@@ -17,7 +18,10 @@ const corsOptions: CorsOptions = {
     }
 
     // Add allowed origins here
-    const allowedOrigins = ["http://localhost:5173"];
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "https://pm-system-mern-frontend.vercel.app",
+    ];
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
