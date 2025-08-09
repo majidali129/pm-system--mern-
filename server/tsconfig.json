@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": "./",
+    "target": "es6",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "typeRoots": ["./src/@types"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
